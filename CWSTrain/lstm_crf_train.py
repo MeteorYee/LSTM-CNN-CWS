@@ -2,7 +2,7 @@
 # @Author: Koth Chen
 # @Date:   2016-07-26 13:48:32
 # @Last Modified by:   Synrey Yee
-# @Last Modified time: 2017-05-06
+# @Last Modified time: 2017-07-06
 
 from __future__ import absolute_import
 from __future__ import division
@@ -15,13 +15,15 @@ import os
 
 FLAGS = tf.app.flags.FLAGS
 
-tf.app.flags.DEFINE_string('train_data_path', "Corpora/ppl_train.txt",
+tf.app.flags.DEFINE_string('train_data_path', "Corpora/train.txt",
                            'Training data dir')
-tf.app.flags.DEFINE_string('test_data_path', "Corpora/ppl_test.txt",
+tf.app.flags.DEFINE_string('test_data_path', "Corpora/test.txt",
                            'Test data dir')
 tf.app.flags.DEFINE_string('log_dir', "Models/seg_logs", 'The log dir')
 tf.app.flags.DEFINE_string("word2vec_path", "char_vec.txt",
                            "the word2vec data path")
+tf.app.flags.DEFINE_string("output_path", "Output/result_seq.txt",
+                           "the output data path")
 
 tf.app.flags.DEFINE_integer("max_sentence_len", 80,
                             "max num of tokens per query")
@@ -30,7 +32,7 @@ tf.app.flags.DEFINE_integer("num_tags", 4, "BMES")
 tf.app.flags.DEFINE_integer("num_hidden", 100, "hidden unit number")
 tf.app.flags.DEFINE_integer("batch_size", 100, "num example per mini batch")
 tf.app.flags.DEFINE_integer("train_steps", 50000, "trainning steps")
-tf.app.flags.DEFINE_float("learning_rate", 0.01, "learning rate")
+tf.app.flags.DEFINE_float("learning_rate", 0.001, "learning rate")
 
 # the word2vec words
 WORDS = None
@@ -213,7 +215,46 @@ def test_evaluate(sess, unary_score, test_sequence_length, transMatrix, inp, tX,
     tl = np.float64(total_labels)
     accuracy = 100.0 * cl / tl
     print("Accuracy: %.3f%%" % accuracy)
-    return accuracy
+
+def output_result(sess, unary_score, test_sequence_length, transMatrix, inp, tX, tY):
+    totalEqual = 0
+    batchSize = FLAGS.batch_size
+    totalLen = tX.shape[0]
+    numBatch = int((tX.shape[0] - 1) / batchSize) + 1
+    correct_labels = 0
+    total_labels = 0
+
+    with open(FLAGS.output_path, 'w') as opt:
+        for i in range(numBatch):
+            endOff = (i + 1) * batchSize
+            if endOff > totalLen:
+                endOff = totalLen
+
+            y = tY[i * batchSize:endOff]
+            feed_dict = {inp: tX[i * batchSize:endOff]}
+            unary_score_val, test_sequence_length_val = sess.run(
+                [unary_score, test_sequence_length], feed_dict)
+
+            for tf_unary_scores_, y_, sequence_length_ in zip(
+                    unary_score_val, y, test_sequence_length_val):
+
+                tf_unary_scores_ = tf_unary_scores_[:sequence_length_]
+                y_ = y_[:sequence_length_]
+
+                viterbi_sequence, _ = tf.contrib.crf.viterbi_decode(
+                    tf_unary_scores_, transMatrix)
+
+                # Evaluate word-level accuracy.
+                correct_labels += np.sum(np.equal(viterbi_sequence, y_))
+                total_labels += sequence_length_
+
+                result = u' '.join(str(x) for x in viterbi_sequence) + u'\n'
+                opt.write(result.encode('utf-8'))
+
+    cl = np.float64(correct_labels)
+    tl = np.float64(total_labels)
+    accuracy = 100.0 * cl / tl
+    print("Accuracy: %.3f%%" % accuracy)
 
 def inputs(path):
     whole = read_csv(FLAGS.batch_size, path)
@@ -249,8 +290,6 @@ def main(unused_argv):
 
         sv = tf.train.Supervisor(graph = graph, logdir = FLAGS.log_dir)
         with sv.managed_session(master = '') as sess:
-            dev = np.float64(0.0001)
-            last_acc = np.float64(0)
             # actual training loop
             training_steps = FLAGS.train_steps
             for step in range(training_steps):
@@ -264,12 +303,12 @@ def main(unused_argv):
                         print("[%d] loss: [%r]" %
                               (step + 1, sess.run(total_loss)))
                     if (step + 1) % 1000 == 0:
-                        acc = test_evaluate(sess, test_unary_score,
-                            test_sequence_length, trainsMatrix, inp, tX, tY)
-                        if np.abs(acc - last_acc) < dev:
-                            break
+                        if (step + 1) < training_steps:
+                            test_evaluate(sess, test_unary_score,
+                                test_sequence_length, trainsMatrix, inp, tX, tY)
                         else:
-                            last_acc = acc
+                            output_result(sess, test_unary_score,
+                                test_sequence_length, trainsMatrix, inp, tX, tY)
 
                 except KeyboardInterrupt, e:
                     sv.saver.save(sess,

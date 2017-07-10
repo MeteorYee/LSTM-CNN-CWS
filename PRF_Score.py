@@ -26,68 +26,62 @@ inpt2 = open(goldfile, 'rU')
 test_raw = []
 
 for ind, line in enumerate(inpt1):
-	# if ind > 5000:
-		# break
+    sent = []
 
-	sent = []
+    for word in line.decode("utf-8").split():
+        sent.append(word)
 
-	for word in line.decode("utf-8").split():
-		sent.append(word)
-
-	test_raw.append(sent)
+    test_raw.append(sent)
 
 gold_raw = []
 
 for ind, line in enumerate(inpt2):
-	# if ind > 5000:
-		# break
+    sent = []
 
-	sent = []
+    for word in line.decode("utf-8").split():
+        sent.append(word)
+        N += 1
 
-	for word in line.decode("utf-8").split():
-		sent.append(word)
-		N += 1
-
-	gold_raw.append(sent)
+    gold_raw.append(sent)
 
 for i, gold_sent in enumerate(gold_raw):
-	test_sent = test_raw[i]
+    test_sent = test_raw[i]
 
-	ig = 0
-	it = 0
-	glen = len(gold_sent)
-	tlen = len(test_sent)
-	while True:
-		if ig >= glen or it >= tlen:
-			break
+    ig = 0
+    it = 0
+    glen = len(gold_sent)
+    tlen = len(test_sent)
+    while True:
+        if ig >= glen or it >= tlen:
+            break
 
-		gword = gold_sent[ig]
-		tword = test_sent[it]
-		if gword == tword:
-			c += 1
-		else:
-			lg = len(gword)
-			lt = len(tword)
-			while lg != lt:
-				try:
-					if lg < lt:
-						ig += 1
-						gword = gold_sent[ig]
-						lg += len(gword)
-					else:
-						it += 1
-						tword = test_sent[it]
-						lt += len(tword)
-				except Exception as e:
-					# pdb.set_trace()
-					print "\nIt is the user's responsibility that a sentence in <test file> must",
-					print "have a SAME LENGTH with its corresponding sentence in <gold file>.\n"
-					raise e
-				
-		ig += 1
-		it += 1
+        gword = gold_sent[ig]
+        tword = test_sent[it]
+        if gword == tword:
+            c += 1
+        else:
+            lg = len(gword)
+            lt = len(tword)
+            while lg != lt:
+                try:
+                    if lg < lt:
+                        ig += 1
+                        gword = gold_sent[ig]
+                        lg += len(gword)
+                    else:
+                        it += 1
+                        tword = test_sent[it]
+                        lt += len(tword)
+                except Exception as e:
+                    # pdb.set_trace()
+                    print "\nIt is the user's responsibility that a sentence in <test file> must",
+                    print "have a SAME LENGTH with its corresponding sentence in <gold file>.\n"
+                    raise e
+                
+        ig += 1
+        it += 1
 
-	TN += len(test_sent)
+    TN += len(test_sent)
 
 e = TN - c
 precision = c / TN
