@@ -36,7 +36,7 @@ Have tensorflow 1.2 installed.
     *python ./CWSTrain/lstm_cnn_train.py --train_data_path Corpora/train.txt \\<br>
     --test_data_path Corpora/test.txt --word2vec_path char_vec.txt*
     
-    Arguments of *lstm_cnn_train.py* are set by **tf.app.flags**. See this file for more args' configurations.
+    Arguments of *lstm_cnn_train.py* are set by **tf.app.flags**. See the file for more args' configurations.
     
 ### One-step Training
     
