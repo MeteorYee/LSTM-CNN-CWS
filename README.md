@@ -55,3 +55,11 @@ Experiments on corpus [**People 2014**](http://www.all-terms.com/bbs/thread-7977
 |   Precision   |     96.12%    |     96.34%    |
 |     Recall    |     95.75%    |     96.39%    |
 |    F-value    |     95.93%    |   **96.36%**  |
+
+* PRF Scoring <br>
+    
+    *python ./CWSTrain/seq2sent.py Output/result_seq_cnn.txt Corpora/test_raw.txt Results/cnn_result.txt*
+    
+    *python PRF_Score.py Results/cnn_result.txt Corpora/test_gold.txt*
+    
+    Result files are put in directory **Results/**.
