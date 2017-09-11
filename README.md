@@ -74,7 +74,7 @@ Experiments on corpus [**People 2014**](http://www.all-terms.com/bbs/thread-7977
 
 * Seg Script <br>
 
-    use file **tools/crf_seg.py** and file **tools/cnn_seg.py**. You may refer to the files about detailed parameters config. <br>
+    Use file **tools/crf_seg.py** and file **tools/cnn_seg.py**. You may refer to the files about detailed parameters config. <br>
     For default, at the root path of this repository, *python tools/crf_seg.py* or *python tools/cnn_seg.py* will work.
     
 * PRF Scoring <br>
