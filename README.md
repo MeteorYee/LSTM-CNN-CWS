@@ -45,20 +45,39 @@ Have tensorflow 1.2 installed.
 ## About the Models
 ### Bi-LSTM-CRF
 Take reference to [Guillaume Lample, Miguel Ballesteros, Sandeep Subramanian, Kazuya Kawakami, and Chris Dyer. Neural Architectures for Named Entity Recognition. In Proc. ACL. 2016.](http://www.aclweb.org/anthology/N16-1030)
+* Freeze graph <br>
+
+    *python tools/freeze_graph.py --input_graph Logs/seg_logs/graph.pbtxt --input_checkpoint Logs/seg_logs/model.ckpt --output_node_names "input_placeholder, transitions, Reshape_7" --output_graph Models/lstm_crf_model.pbtxt*
+
+    Build model for segmentation.
 ### Bi-LSTM-CNN
 See [Here](http://htmlpreview.github.io/?https://github.com/MeteorYee/LSTM-CNN-CWS/blob/master/Extra/Bi-LSTM_CNN.html).
+* Freeze graph <br>
+
+    *python tools/freeze_graph.py --input_graph Logs/seg_cnn_logs/graph.pbtxt --input_checkpoint Logs/seg_cnn_logs/model.ckpt --output_node_names "input_placeholder,Reshape_5" --output_graph Models/lstm_cnn_model.pbtxt*
+    
 ### Comparison
 Experiments on corpus [**People 2014**](http://www.all-terms.com/bbs/thread-7977-1-1.html).
 
 |     Models    |  Bi-LSTM-CRF  |  Bi-LSTM-CNN  |
 | ------------- | ------------- | ------------- |
-|   Precision   |     96.12%    |     96.34%    |
-|     Recall    |     95.75%    |     96.39%    |
-|    F-value    |     95.93%    |   **96.36%**  |
+|   Precision   |     96.11%    |     96.27%    |
+|     Recall    |     95.73%    |     96.34%    |
+|    F-value    |     95.92%    |   **96.30%**  |
 
-* PRF Scoring <br>
+## Segmentation
+* Dump Vocabulary <br>
+
+    *python tools/vob_dump.py --vecpath char_vec.txt --dump_path Models/vob_dump.pk* <br>
+
+    This step is **neccessary** for the seg model.
+
+* Seg Script <br>
+
+    use file **tools/crf_seg.py** and file **tools/cnn_seg.py**. You may refer to the files about detailed parameters config. <br>
+    For default, at the root path of this repository, *python tools/crf_seg.py* or *python tools/cnn_seg.py* will work.
     
-    *python ./CWSTrain/seq2sent.py Output/result_seq_cnn.txt Corpora/test_raw.txt Results/cnn_result.txt*
+* PRF Scoring <br>
     
     *python PRF_Score.py Results/cnn_result.txt Corpora/test_gold.txt*
     
