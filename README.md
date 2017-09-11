@@ -63,7 +63,7 @@ Experiments on corpus [**People 2014**](http://www.all-terms.com/bbs/thread-7977
 | ------------- | ------------- | ------------- |
 |   Precision   |     96.11%    |     96.27%    |
 |     Recall    |     95.73%    |     96.34%    |
-|    F-value    |     95.92%    |   **96.30%**  |
+|    F-value    |     95.92%    |     **96.30%**    |
 
 ## Segmentation
 * Dump Vocabulary <br>
