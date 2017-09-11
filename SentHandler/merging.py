@@ -6,23 +6,21 @@
 #
 # Description: merge sentences
 #
-# Last Modified at: 05/06/2017, by: Synrey Yee
+# Last Modified at: 09/10/2017, by: Synrey Yee
 
-def MergeSentence(filename, cut_count, out_file, blacklist = []):
-	ipt = open(filename, 'r')
+def MergeSentence(instream, cut_count, out_file, blacklist = []):
 	# add one tail to prevent overflow of cut_count
 	cut_count.append(-1)
 
 	with open(out_file, 'w') as opt:
 		i = 0
 		cnt = cut_count[0]
-		for line in ipt:
-			if (i + 1) in blacklist and cnt > 0:
-				cnt -= 1
-				if cnt == 0:
-					opt.write("Cannot handle this sentence!\n")
-					i += 1
-					cnt = cut_count[i]
+		for line in instream:
+			if i in blacklist:
+				opt.write("Cannot handle this sentence!\n")
+				i += 1
+				cnt = cut_count[i]
+
 				continue
 
 			if cnt == 1:
@@ -33,5 +31,3 @@ def MergeSentence(filename, cut_count, out_file, blacklist = []):
 				line = line.strip()
 				opt.write(line + ' ')
 				cnt -= 1
-
-	ipt.close()

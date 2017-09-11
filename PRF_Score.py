@@ -74,6 +74,7 @@ for i, gold_sent in enumerate(gold_raw):
                         lt += len(tword)
                 except Exception as e:
                     # pdb.set_trace()
+                    print "Line: %d" % (i + 1)
                     print "\nIt is the user's responsibility that a sentence in <test file> must",
                     print "have a SAME LENGTH with its corresponding sentence in <gold file>.\n"
                     raise e

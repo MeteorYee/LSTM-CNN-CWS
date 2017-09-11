@@ -6,7 +6,7 @@
 #
 # Description: some previous jobs before sentences slicing
 #
-# Last Modified at: 05/07/2017, by: Synrey Yee
+# Last Modified at: 06/27/2017, by: Synrey Yee
 
 import os
 
@@ -160,23 +160,19 @@ def CleanSentence(line, tag_set, interval = u'', breakword = False):
 
 	newline = u""
 	for token in lst:
-		if token[0] == u'/':
-			newline += u'/' + interval
-		else:
-			pair = token.split(u'/')
-			length = len(pair)
-			if length > 1:
-				tag_set.add(pair[-1])
-			
-			if breakword:
-				for i in xrange(length - 1):
-					for char in pair[i]:
-						newline += char + interval
+		index = token[::-1].find(u'/') + 1
+		end = len(token) - index
+		word = token[ : end]
+		pos = token[end + 1 : ]
 
-					if i < length - 2:
-						newline += u'/' + interval
-			else:
-				newline += pair[0] + interval
+		tag_set.add(pos)
+				
+		if breakword:
+			for char in word:
+				newline += char + interval
+
+		else:
+			newline += word + interval
 
 	newline = newline.encode("utf-8") + '\n'
 	return newline

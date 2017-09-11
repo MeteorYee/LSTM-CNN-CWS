@@ -6,7 +6,7 @@
 #
 # Description: slice sentences and make them acceptable for training
 #
-# Last Modified at: 05/10/2017, by: Synrey Yee
+# Last Modified at: 06/27/2017, by: Synrey Yee
 
 # import pdb
 
@@ -165,6 +165,68 @@ def Analyze(pieces, vob_dict, max_len = 100):
 					X.append(vob_dict[u"<UNK>"])
 
 				Y.append(TAGS[0])
+
+		length = len(X)
+		if length != len(Y):
+			return [], False
+		if length > MAX_LEN:
+			return [], False
+
+		for _ in xrange(length, MAX_LEN):
+			X.append(0)
+			Y.append(0)
+
+		strX = ' '.join(str(x) for x in X)
+		strY = ' '.join(str(y) for y in Y)
+		new_piece = strX + ' ' + strY + '\n'
+		new_pieces.append(new_piece)
+
+	return new_pieces, True
+
+# char pos labeling
+def POS_Analyze(pieces, vob_dict, pos_dict, max_len = 100):
+	global MAX_LEN
+	MAX_LEN = max_len
+
+	new_pieces = []
+	for piece in pieces:
+		ustr = piece.decode("utf-8").strip()
+		lst = ustr.split()
+
+		X = []
+		Y = []
+
+		for token in lst:
+			index = token[::-1].find(u'/') + 1
+			end = len(token) - index
+			word = token[ : end]
+			pos = token[end + 1 : ]
+
+			pos_no = pos_dict["UNK"]
+			if pos_dict.has_key(pos):
+				pos_no = pos_dict[pos]
+
+			leng = len(word)
+			if leng > 1:
+				for j, char in enumerate(word):
+					if vob_dict.has_key(char):
+						X.append(vob_dict[char])
+					else:
+						X.append(vob_dict[u"<UNK>"])
+
+					if j == 0:
+						Y.append(4 * pos_no + TAGS[1])
+					elif j == leng - 1:
+						Y.append(4 * pos_no + TAGS[3])
+					else:
+						Y.append(4 * pos_no + TAGS[2])
+			else:
+				if vob_dict.has_key(word):
+					X.append(vob_dict[word])
+				else:
+					X.append(vob_dict[u"<UNK>"])
+
+				Y.append(4 * pos_no + TAGS[0])
 
 		length = len(X)
 		if length != len(Y):

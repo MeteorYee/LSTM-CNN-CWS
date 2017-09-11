@@ -8,6 +8,6 @@
 #
 # Last Modified at: 04/24/2017, by: Synrey Yee
 
-from slicing import SliceSentence, Analyze
+from slicing import SliceSentence, Analyze, POS_Analyze
 from pre_slicing import NE_Removing, NE_labeling, POS_labeling, CleanSentence, All2oneFile
 from merging import MergeSentence

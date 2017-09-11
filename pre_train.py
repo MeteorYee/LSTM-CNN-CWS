@@ -75,7 +75,6 @@ def main(corpusAll,
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.register("type", "bool", lambda v: v.lower() == "true")
 
     parser.add_argument(
       "--corpusAll",

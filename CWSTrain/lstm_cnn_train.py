@@ -20,11 +20,9 @@ tf.app.flags.DEFINE_string('train_data_path', "Corpora/train.txt",
                            'Training data dir')
 tf.app.flags.DEFINE_string('test_data_path', "Corpora/test.txt",
                            'Test data dir')
-tf.app.flags.DEFINE_string('log_dir', "Models/seg_cnn_logs", 'The log dir')
+tf.app.flags.DEFINE_string('log_dir', "Logs/seg_cnn_logs", 'The log dir')
 tf.app.flags.DEFINE_string("word2vec_path", "char_vec.txt",
                            "the word2vec data path")
-tf.app.flags.DEFINE_string("output_path", "Output/result_seq_cnn.txt",
-                           "the output data path")
 
 tf.app.flags.DEFINE_integer("max_sentence_len", 80,
                             "max num of tokens per query")
@@ -277,43 +275,6 @@ def test_evaluate(sess, unary_score, test_sequence_length, inp, tX, tY):
     print("Accuracy: %.3f%%" % accuracy)
     return accuracy
 
-def output_result(sess, unary_score, test_sequence_length, inp, tX, tY):
-    totalEqual = 0
-    batchSize = FLAGS.batch_size
-    totalLen = tX.shape[0]
-    numBatch = int((tX.shape[0] - 1) / batchSize) + 1
-    correct_labels = 0
-    total_labels = 0
-
-    with open(FLAGS.output_path, 'w') as opt:
-        for i in range(numBatch):
-            endOff = (i + 1) * batchSize
-            if endOff > totalLen:
-                endOff = totalLen
-
-            y = tY[i * batchSize:endOff]
-            feed_dict = {inp: tX[i * batchSize:endOff]}
-            unary_score_val, test_sequence_length_val = sess.run(
-                [unary_score, test_sequence_length], feed_dict)
-
-            for tf_unary_scores_, y_, sequence_length_ in zip(
-                    unary_score_val, y, test_sequence_length_val):
-
-                best_sequence = tf_unary_scores_[:sequence_length_]
-                y_ = y_[:sequence_length_]
-                # Evaluate word-level accuracy.
-                correct_labels += np.sum(np.equal(best_sequence, y_))
-                total_labels += sequence_length_
-
-                result = u' '.join(str(x) for x in best_sequence) + u'\n'
-                opt.write(result.encode('utf-8'))
-
-    cl = np.float64(correct_labels)
-    tl = np.float64(total_labels)
-    accuracy = 100.0 * cl / tl
-
-    print("Accuracy: %.3f%%" % accuracy)
-
 def inputs(path):
     whole = read_csv(FLAGS.batch_size, path)
     features = tf.transpose(tf.stack(whole[0:FLAGS.max_sentence_len]))
@@ -362,12 +323,8 @@ def main(unused_argv):
                         print("[%d] loss: [%r]" %
                               (step + 1, sess.run(cross_entropy)))
                     if (step + 1) % 1000 == 0:
-                        if (step + 1) < training_steps:
-                            test_evaluate(sess, test_unary_score,
-                                test_sequence_length, inp, tX, tY)
-                        else:
-                            output_result(sess, test_unary_score,
-                                test_sequence_length, inp, tX, tY)
+                        test_evaluate(sess, test_unary_score,
+                            test_sequence_length, inp, tX, tY)
 
                 except KeyboardInterrupt, e:
                     sv.saver.save(sess,
