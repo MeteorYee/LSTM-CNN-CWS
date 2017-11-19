@@ -264,7 +264,7 @@ def main(unused_argv):
                         test_evaluate(sess, test_unary_score,
                             test_sequence_length, trainsMatrix, inp, tX, tY)
 
-                except KeyboardInterrupt, e:
+                except KeyboardInterrupt as e:
                     sv.saver.save(sess,
                                   FLAGS.log_dir + '/model',
                                   global_step = (step + 1))

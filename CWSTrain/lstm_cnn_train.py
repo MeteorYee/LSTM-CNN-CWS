@@ -132,7 +132,7 @@ def inference(X, weights, bias, reuse = None, trainMode = True):
     # [80, batch_size, 1, 200]
 
     char_blocks = output
-    for i in xrange(FLAGS.mrank):
+    for i in range(FLAGS.mrank):
         ileft = output[(i + 1) : ]
         iright = output[ : FLAGS.max_sentence_len - (i + 1)]
 
@@ -326,7 +326,7 @@ def main(unused_argv):
                         test_evaluate(sess, test_unary_score,
                             test_sequence_length, inp, tX, tY)
 
-                except KeyboardInterrupt, e:
+                except KeyboardInterrupt as e:
                     sv.saver.save(sess,
                                   FLAGS.log_dir + '/model',
                                   global_step = (step + 1))
