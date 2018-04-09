@@ -1,5 +1,8 @@
-# LSTM-CNN-CWS
-Bi-LSTM+CNN for Chinese word segmentation
+# LSTM-(CNN)-CRF for CWS
+Bi-LSTM+CNN+CRF for Chinese word segmentation <br>
+The **new version** is COMING. However, the old version is still available on another branch.
+
+### All the information below is DEPRECATED. The new document is on the way...
 
 ## Acknowledgement
 The implementation of this repository partly refers to [Koth's kcws](https://github.com/koth/kcws).
