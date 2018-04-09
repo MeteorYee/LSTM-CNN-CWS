@@ -1,5 +1,6 @@
 # LSTM-CNN-CWS
-Bi-LSTM+CNN for Chinese word segmentation
+Bi-LSTM+CNN for Chinese word segmentation<br>
+The new version has come! See [here](https://github.com/MeteorYee/LSTM-CNN-CWS)
 
 ## Acknowledgement
 The implementation of this repository partly refers to [Koth's kcws](https://github.com/koth/kcws).
