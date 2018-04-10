@@ -1,87 +1,53 @@
 # LSTM-(CNN)-CRF for CWS
-Bi-LSTM+CNN+CRF for Chinese word segmentation <br>
-The **new version** is COMING. However, the old version is still available on another branch.
-
-### All the information below is DEPRECATED. The new document is on the way...
-
-## Acknowledgement
-The implementation of this repository partly refers to [Koth's kcws](https://github.com/koth/kcws).
+[![Python 2&3](https://img.shields.io/badge/python-2&3-brightgreen.svg)](https://www.python.org/) 
+[![Tensorflow-1.7](https://img.shields.io/badge/tensorflow-1.7-orange.svg)](https://www.tensorflow.org/)<br>
+Bi-LSTM+CNN+CRF for Chinese word segmentation. <br><br>
+The **new version** has come. However, the old version is still available on another branch.
 
 ## Usage
-Have tensorflow 1.2 installed.
+***What's new?***
+* The new system is arranged **more orderly**;
+* The CNN model has been tweaked;
+* Remove the limitation of maximum length of sentences, although you can still set it;
+* Add gradient clipping;
+* Temporally remove the pre-training (may add back in the future).
 ### Command Step by Step
 * Preprocessing <br>
-    
-    *python preprocess.py --rootDir \<ROOTDIR> --corpusAll Corpora/people2014All.txt --resultFile pre_chars_for_w2v.txt*
-    
-    ROOTDIR is the absolute path of your corpus. Run *python preprocess.py -h* to see more details.
-    
-* Word2vec Training <br>
-    
-    *./third_party/word2vec -train pre_chars_for_w2v.txt -save-vocab pre_vocab.txt -min-count 3*
-    
-    *python SentHandler/replace_unk.py pre_vocab.txt pre_chars_for_w2v.txt chars_for_w2v.txt*
-    
-    *./third_party/word2vec -train chars_for_w2v.txt -output char_vec.txt \\<br>
-    -size 50 -sample 1e-4 -negative 0 -hs 1 -binary 0 -iter 5*
-    
-    First off, the file **word2vec.c** in third_party directory should be compiled (see third_party/compile_w2v.sh). Then word2vec counts the characters which have a frequency more than 3 and saves them into file **pre_vocab.txt**. After replacing with **"UNK"** the words that are not in pre_vocab.txt, finally, word2vec training begins.
-    
-* Generate Training Files <br>
-    
-    *python pre_train.py --corpusAll Corpora/people2014All.txt --vecpath char_vec.txt \\<br>
-    --train_file Corpora/train.txt --test_file Corpora/test.txt*
-    
-    Run *python pre_train.py -h* to see more details.
+Used to generate training files from the Corpora such as [**People 2014**](http://www.all-terms.com/bbs/thread-7977-1-1.html) and [**icwb2-data**](http://sighan.cs.uchicago.edu/bakeoff2005/). See the source code or run *python preprocess.py -h* to see more details.
     
 * Training <br>
+    For example:<br>
     
-    *python ./CWSTrain/lstm_cnn_train.py --train_data_path Corpora/train.txt \\<br>
-    --test_data_path Corpora/test.txt --word2vec_path char_vec.txt*
+    *python3 -m sycws.sycws --train_prefix /home/synrey/data/cws-v2-data/train --eval_prefix /home/synrey/data/cws-v2-data/eval --vocab_file /home/synrey/data/cws-v2-data/vocab.txt --out_dir /home/synrey/data/cws-v2-data/model --model CNN-CRF*
     
-    Arguments of *lstm_cnn_train.py* are set by **tf.app.flags**. See the file for more args' configurations.
-    
-### One-step Training
-    
-    ./cws_train.sh <ROOTDIR>
+    See the source code for more args' configuration. It shuold perform well with the default parameters. Naturally, you may also try out other parameter settings.
     
 ## About the Models
-### Bi-LSTM-CRF
-Take reference to [Guillaume Lample, Miguel Ballesteros, Sandeep Subramanian, Kazuya Kawakami, and Chris Dyer. Neural Architectures for Named Entity Recognition. In Proc. ACL. 2016.](http://www.aclweb.org/anthology/N16-1030)
-* Freeze graph <br>
+### Bi-LSTM-SL-CRF 
+Take reference to [Guillaume Lample, Miguel Ballesteros, Sandeep Subramanian, Kazuya Kawakami, and Chris Dyer. Neural Architectures for Named Entity Recognition. In Proc. ACL. 2016.](http://www.aclweb.org/anthology/N16-1030)<br><br>
+Actually, there is a *single layer* (SL) between BiLSTM and CRF.
 
-    *python tools/freeze_graph.py --input_graph Logs/seg_logs/graph.pbtxt --input_checkpoint Logs/seg_logs/model.ckpt --output_node_names "input_placeholder, transitions, Reshape_7" --output_graph Models/lstm_crf_model.pbtxt*
-
-    Build model for segmentation.
-### Bi-LSTM-CNN
-See [Here](http://htmlpreview.github.io/?https://github.com/MeteorYee/LSTM-CNN-CWS/blob/master/Extra/Bi-LSTM_CNN.html).
-* Freeze graph <br>
-
-    *python tools/freeze_graph.py --input_graph Logs/seg_cnn_logs/graph.pbtxt --input_checkpoint Logs/seg_cnn_logs/model.ckpt --output_node_names "input_placeholder,Reshape_5" --output_graph Models/lstm_cnn_model.pbtxt*
+### Bi-LSTM-CNN-CRF
+See [Here](http://htmlpreview.github.io/?https://github.com/MeteorYee/LSTM-CNN-CWS/blob/master/Extra/Bi-LSTM_CNN.html).<br>
+Namely, the single layer between BiLSTM and CRF is replaced by a layer of CNN.
     
 ### Comparison
 Experiments on corpus [**People 2014**](http://www.all-terms.com/bbs/thread-7977-1-1.html).
 
-|     Models    |  Bi-LSTM-CRF  |  Bi-LSTM-CNN  |
-| ------------- | ------------- | ------------- |
-|   Precision   |     96.11%    |     96.27%    |
-|     Recall    |     95.73%    |     96.34%    |
-|    F-value    |     95.92%    |     **96.30%**    |
+|     Models    |  Bi-LSTM-SL-CRF  |  Bi-LSTM-CNN-CRF  |
+| :-----------: | :--------------: | :---------------: |
+|   Precision   |     96.25%       |      96.30%       |
+|     Recall    |     95.34%       |      95.70%       |
+|     F-value   |     95.79%       |    **96.00%**     |
 
 ## Segmentation
-* Dump Vocabulary <br>
+* Inference <br>
+For example, to use model **BiLSTM-CNN-CRF** for decoding.<br>
 
-    *python tools/vob_dump.py --vecpath char_vec.txt --dump_path Models/vob_dump.pk* <br>
-
-    This step is **neccessary** for the seg model.
-
-* Seg Script <br>
-
-    Use file **tools/crf_seg.py** and file **tools/cnn_seg.py**. You may refer to the files about detailed parameters config. <br>
-    For default, at the root path of this repository, *python tools/crf_seg.py* or *python tools/cnn_seg.py* will work.
+    *python3 -m sycws.sycws --train_prefix /home/synrey/data/cws-v2-data/train --eval_prefix /home/synrey/data/cws-v2-data/eval --vocab_file /home/synrey/data/cws-v2-data/vocab.txt --out_dir /home/synrey/data/cws-v2-data/model --inference_input_file /home/synrey/data/cws-v2-data/test.txt --inference_output_file /home/synrey/data/cws-v2-data/result.txt*
+    
+    Set *--model CRF* to use model **BiLSTM-SL-CRF** for inference.
     
 * PRF Scoring <br>
     
-    *python PRF_Score.py Results/cnn_result.txt Corpora/test_gold.txt*
-    
-    Result files are put in directory **Results/**.
+    *python3 PRF_Score.py <test_file> <gold_file>*
