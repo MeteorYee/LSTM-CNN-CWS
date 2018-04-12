@@ -9,8 +9,10 @@
 # Synrey Yee
 
 from __future__ import division
+from __future__ import print_function
+
+import codecs
 import sys
-# import pdb
 
 e = 0 # wrong words number
 c = 0 # correct words number
@@ -20,69 +22,68 @@ TN = 0 # test words number
 testfile = sys.argv[1]
 goldfile = sys.argv[2]
 
-inpt1 = open(testfile, 'rU')
-inpt2 = open(goldfile, 'rU')
-
 test_raw = []
-
-for ind, line in enumerate(inpt1):
+with codecs.open(testfile, 'r', "utf-8") as inpt1:
+  for ind, line in enumerate(inpt1):
     sent = []
 
-    for word in line.decode("utf-8").split():
-        sent.append(word)
+    for word in line.split():
+      sent.append(word)
 
-    test_raw.append(sent)
+    if sent:
+      test_raw.append(sent)
 
 gold_raw = []
-
-for ind, line in enumerate(inpt2):
+with codecs.open(goldfile, 'r', "utf-8") as inpt2:
+  for ind, line in enumerate(inpt2):
     sent = []
 
-    for word in line.decode("utf-8").split():
-        sent.append(word)
-        N += 1
+    for word in line.split():
+      sent.append(word)
+      N += 1
 
-    gold_raw.append(sent)
+    if sent:
+      gold_raw.append(sent)
 
 for i, gold_sent in enumerate(gold_raw):
-    test_sent = test_raw[i]
+  test_sent = test_raw[i]
 
-    ig = 0
-    it = 0
-    glen = len(gold_sent)
-    tlen = len(test_sent)
-    while True:
-        if ig >= glen or it >= tlen:
-            break
+  ig = 0
+  it = 0
+  glen = len(gold_sent)
+  tlen = len(test_sent)
+  while True:
+    if ig >= glen or it >= tlen:
+      break
 
-        gword = gold_sent[ig]
-        tword = test_sent[it]
-        if gword == tword:
-            c += 1
-        else:
-            lg = len(gword)
-            lt = len(tword)
-            while lg != lt:
-                try:
-                    if lg < lt:
-                        ig += 1
-                        gword = gold_sent[ig]
-                        lg += len(gword)
-                    else:
-                        it += 1
-                        tword = test_sent[it]
-                        lt += len(tword)
-                except Exception as e:
-                    # pdb.set_trace()
-                    print "Line: %d" % (i + 1)
-                    print "\nIt is the user's responsibility that a sentence in <test file> must",
-                    print "have a SAME LENGTH with its corresponding sentence in <gold file>.\n"
-                    raise e
-                
-        ig += 1
-        it += 1
+    gword = gold_sent[ig]
+    tword = test_sent[it]
+    if gword == tword:
+      c += 1
+    else:
+      lg = len(gword)
+      lt = len(tword)
+      while lg != lt:
+        try:
+          if lg < lt:
+            ig += 1
+            gword = gold_sent[ig]
+            lg += len(gword)
+          else:
+            it += 1
+            tword = test_sent[it]
+            lt += len(tword)
+        except Exception as e:
+          # pdb.set_trace()
+          print ("Line: %d" % (i + 1))
+          print ("\nIt is the user's responsibility that a sentence in <test file> must", end = ' ')
+          print ("have a SAME LENGTH with its corresponding sentence in <gold file>.\n")
+          raise e
+        
+    ig += 1
+    it += 1
 
-    TN += len(test_sent)
+  TN += len(test_sent)
 
 e = TN - c
 precision = c / TN
@@ -90,11 +91,10 @@ recall = c / N
 F = 2 * precision * recall / (precision + recall)
 error_rate = e / N
 
-print "Correct words: %d"%c
-print "Error words: %d"%e
-print "Gold words: %d"%N
-print
-print "precision: %f"%precision
-print "recall: %f"%recall
-print "F-Value: %f"%F
-print "error_rate: %f"%error_rate
+print ("Correct words: %d"%c)
+print ("Error words: %d"%e)
+print ("Gold words: %d\n"%N)
+print ("precision: %f"%precision)
+print ("recall: %f"%recall)
+print ("F-Value: %f"%F)
+print ("error_rate: %f"%error_rate)
