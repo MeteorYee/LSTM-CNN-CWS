@@ -44,7 +44,7 @@ class BasicModel(object):
     self.iterator = iterator
     self.mode = mode
     self.vocab_table = vocab_table
-    self.vocab_size = hparams.vocab_size
+    self.vocab_size = hparams.vocab_size+1
     self.time_major = hparams.time_major
 
     # Initializer
@@ -252,7 +252,7 @@ class BasicModel(object):
   def _calculate_right(self):
     decode_tags = self._decode()
     sign_tensor = tf.equal(decode_tags, self.iterator.label)
-    right_count = tf.reduce_sum(tf.cast(sign_tensor, tf.int32))
+    right_count = tf.cast(sign_tensor, tf.int32)
 
     return right_count
 
@@ -269,7 +269,8 @@ class BasicModel(object):
     assert self.mode == tf.contrib.learn.ModeKeys.EVAL
     return sess.run([self.char_count,
                      self.right_count,
-                     self.batch_size])
+                     self.batch_size,
+                     self.iterator.sequence_length])
 
 
   def infer(self, sess):
@@ -280,7 +281,7 @@ class BasicModel(object):
     
 
 class CnnCrfModel(BasicModel):
-  """Bi-LSTM + CNN + CRF"""
+  
 
   def _middle_layer(self, encoder_outputs, hparams, dtype = tf.float32):
     # CNN

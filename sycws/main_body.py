@@ -33,6 +33,7 @@ from __future__ import division
 from . import model_helper
 
 import tensorflow as tf
+import numpy as np
 
 import time
 import os
@@ -138,9 +139,13 @@ def evaluation(eval_model, model_dir, eval_sess,
   total_line = 0
   while True:
     try:
-      batch_char_cnt, batch_right_cnt, batch_size = loaded_eval_model.eval(eval_sess)
+      (batch_char_cnt, batch_right_cnt,
+          batch_size, batch_lens) = loaded_eval_model.eval(eval_sess)
+
+      for right_cnt, length in zip(batch_right_cnt, batch_lens):
+        total_right_cnt += np.sum(right_cnt[ : length])
+        
       total_char_cnt += batch_char_cnt
-      total_right_cnt += batch_right_cnt
       total_line += batch_size
     except tf.errors.OutOfRangeError:
       # finish the evaluation

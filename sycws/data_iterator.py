@@ -147,7 +147,7 @@ def get_iterator(txt_dataset,
         # (Though notice we don't generally need to do this since
         # later on we will be masking out calculations past the true sequence.
 
-        padding_values = (-1, -1, 0) # distinguish it from UNK_id,
+        # padding_values = (0, 0, 0) # default values,
         # 0 for length--unused though
         )
 
