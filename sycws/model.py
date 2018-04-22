@@ -44,7 +44,7 @@ class BasicModel(object):
     self.iterator = iterator
     self.mode = mode
     self.vocab_table = vocab_table
-    self.vocab_size = hparams.vocab_size+1
+    self.vocab_size = hparams.vocab_size
     self.time_major = hparams.time_major
 
     # Initializer
@@ -281,8 +281,8 @@ class BasicModel(object):
     
 
 class CnnCrfModel(BasicModel):
+  """Bi-LSTM + CNN + CRF"""
   
-
   def _middle_layer(self, encoder_outputs, hparams, dtype = tf.float32):
     # CNN
     return self._cnn_layer(encoder_outputs, hparams, dtype)
