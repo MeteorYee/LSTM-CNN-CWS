@@ -13,8 +13,13 @@ The **new version** has come. However, the old version is still available on ano
 * Temporally remove the pre-training (may add back in the future).
 ### Command Step by Step
 * Preprocessing <br>
-Used to generate training files from the Corpora such as [**People 2014**](http://www.all-terms.com/bbs/thread-7977-1-1.html) and [**icwb2-data**](http://sighan.cs.uchicago.edu/bakeoff2005/). See the source code or run *python preprocess.py -h* to see more details.
-    
+    Used to generate training files from the Corpora such as [**People 2014**](http://www.all-terms.com/bbs/thread-7977-1-1.html) and [**icwb2-data**](http://sighan.cs.uchicago.edu/bakeoff2005/). See the source code or run *python preprocess.py -h* to see more details.<br>
+
+    For example, for the *People* data, use the default arguments;<br>
+
+    For the icwb2-data such as PKU:<br>
+    *python3 preprocess.py --all_corpora /home/synrey/data/icwb2-data/training/pku_training.utf8 --vob_path /home/synrey/data/icwb2-data/data-pku/vocab.txt --train_file_pre /home/synrey/data/icwb2-data/data-pku/train --eval_file_pre /home/synrey/data/icwb2-data/data-pku/eval --gold_file /home/synrey/data/icwb2-data/gold/pku_test_gold.utf8 --is_people False --word_freq 2*
+
 * Training <br>
     For example:<br>
     
