@@ -6,7 +6,7 @@
 #
 # Description: preprocessing for people 2014 corpora
 #
-# Last Modified at: 03/23/2018, by: Synrey Yee
+# Last Modified at: 05/20/2018, by: Synrey Yee
 
 '''
 ==========================================================================
@@ -81,7 +81,7 @@ def write_line(line_list, outstream, sep = SPACE):
   outstream.write(line + u'\n')
 
 
-def analyze_line(line_list, vob_dict = defaultdict(int)):
+def analyze_line(line_list, vob_dict):
   char_list = []
   label_list = []
 
@@ -108,8 +108,8 @@ def analyze_line(line_list, vob_dict = defaultdict(int)):
   return char_list, label_list
 
 
-def generate_files(corpora, vob_path, train_word_file,
-    train_label_file, eval_word_file, eval_label_file,
+def generate_files(corpora, vob_path, char_file, train_word_file,
+    train_label_file, eval_word_file, eval_label_file, eval_gold_file,
     test_file, gold_file, step, freq, max_len):
 
   inp = codecs.open(corpora, 'r', "utf-8")
@@ -119,6 +119,7 @@ def generate_files(corpora, vob_path, train_word_file,
   ev_wd_wr = codecs.open(eval_word_file, 'w', "utf-8")
   ev_lb_wr = codecs.open(eval_label_file, 'w', "utf-8")
 
+  ev_gold_wr = codecs.open(eval_gold_file, 'w', "utf-8")
   test_wr = codecs.open(test_file, 'w', "utf-8")
   gold_wr = codecs.open(gold_file, 'w', "utf-8")
 
@@ -126,7 +127,7 @@ def generate_files(corpora, vob_path, train_word_file,
   vob_dict = defaultdict(int)
   isEval = True
 
-  with inp, tr_wd_wr, tr_lb_wr, ev_wd_wr, ev_lb_wr, test_wr, gold_wr:
+  with inp, tr_wd_wr, tr_lb_wr, ev_wd_wr, ev_lb_wr, ev_gold_wr, test_wr, gold_wr:
     for ind, line in enumerate(inp):
       line_list = line.strip().split()
       if len(line_list) > max_len:
@@ -144,6 +145,7 @@ def generate_files(corpora, vob_path, train_word_file,
         if isEval:
           write_line(char_list, ev_wd_wr)
           write_line(label_list, ev_lb_wr)
+          write_line(cleaned_line, ev_gold_wr)
           isEval = False
         else:
           write_line(cleaned_line, test_wr, sep = u'')
@@ -152,6 +154,27 @@ def generate_files(corpora, vob_path, train_word_file,
       else:
         write_line(char_list, tr_wd_wr)
         write_line(label_list, tr_lb_wr)
+
+  inp = codecs.open(corpora, 'r', "utf-8")
+  ch_wr = codecs.open(char_file, 'w', "utf-8")
+  with inp, ch_wr:
+    for line in inp:
+      line_list = line.strip().split()
+      if len(line_list) > max_len:
+        continue
+
+      cleaned_line = clean_sentence(line_list)
+      if not cleaned_line:
+        continue
+      char_list = []
+      for phr in cleaned_line:
+        for ch in phr:
+          if vob_dict[ch] < freq:
+            char_list.append(UNK)
+          else:
+            char_list.append(ch)
+
+      write_line(char_list, ch_wr)
 
   word_cnt = 0
   with codecs.open(vob_path, 'w', "utf-8") as vob_wr:
@@ -185,18 +208,21 @@ def people_main(args):
   eval_word_file = args.eval_file_pre + ".txt"
   eval_label_file = args.eval_file_pre + ".lb"
 
-  generate_files(corpora, args.vob_path, train_word_file,
-      train_label_file, eval_word_file, eval_label_file,
-      args.test_file, args.gold_file, step,
-      args.word_freq, args.max_len)
+  generate_files(corpora, args.vob_path, args.char_file,
+      train_word_file, train_label_file, eval_word_file,
+      eval_label_file, args.eval_gold_file, args.test_file,
+      args.gold_file, step, args.word_freq, args.max_len)
 
 
-def analyze_write(inp, word_writer, label_writer, vob_dict):
+def analyze_write(inp, word_writer, label_writer,
+    vob_dict = defaultdict(int)):
   with inp, word_writer, label_writer:
     for line in inp:
       line_list = line.strip().split()
-      char_list, label_list = analyze_line(line_list, vob_dict)
+      if len(line_list) < 1:
+        continue
 
+      char_list, label_list = analyze_line(line_list, vob_dict)
       write_line(char_list, word_writer)
       write_line(label_list, label_writer)
 
@@ -207,6 +233,7 @@ def icwb_main(args):
   assert os.path.exists(corpora)
   gold_file = args.gold_file
   assert os.path.exists(gold_file)
+  freq = args.word_freq
 
   train_word_file = args.train_file_pre + ".txt"
   train_label_file = args.train_file_pre + ".lb"
@@ -216,6 +243,7 @@ def icwb_main(args):
   train_inp = codecs.open(corpora, 'r', "utf-8")
   gold_inp = codecs.open(gold_file, 'r', "utf-8")
 
+  ch_wr = codecs.open(args.char_file, 'w', "utf-8")
   tr_wd_wr = codecs.open(train_word_file, 'w', "utf-8")
   tr_lb_wr = codecs.open(train_label_file, 'w', "utf-8")
   ev_wd_wr = codecs.open(eval_word_file, 'w', "utf-8")
@@ -223,10 +251,23 @@ def icwb_main(args):
 
   vob_dict = defaultdict(int)
   analyze_write(train_inp, tr_wd_wr, tr_lb_wr, vob_dict)
-  analyze_write(gold_inp, ev_wd_wr, ev_lb_wr, vob_dict)
+  analyze_write(gold_inp, ev_wd_wr, ev_lb_wr)
+
+  train_inp = codecs.open(corpora, 'r', "utf-8")
+  with train_inp, ch_wr:
+    for line in train_inp:
+      phrases = line.strip().split()
+      char_list = []
+      for phr in phrases:
+        for ch in phr:
+          if vob_dict[ch] < freq:
+            char_list.append(UNK)
+          else:
+            char_list.append(ch)
+
+      write_line(char_list, ch_wr)
 
   word_cnt = 0
-  freq = args.word_freq
   with codecs.open(args.vob_path, 'w', "utf-8") as vob_wr:
     vob_wr.write(UNK + u'\n')
     for word, fq in vob_dict.items():
@@ -257,6 +298,12 @@ if __name__ == '__main__':
     help = "vocabulary's path")
 
   parser.add_argument(
+    "--char_file",
+    type = str,
+    default = "/home/synrey/data/cws-v2-data/chars.txt",
+    help = "the file used for word2vec pretraining")
+
+  parser.add_argument(
     "--train_file_pre",
     type = str,
     default = "/home/synrey/data/cws-v2-data/train",
@@ -267,6 +314,13 @@ if __name__ == '__main__':
     type = str,
     default = "/home/synrey/data/cws-v2-data/eval",
     help = "eval file's prefix")
+
+  parser.add_argument(
+    "--eval_gold_file",
+    type = str,
+    default = "/home/synrey/data/cws-v2-data/eval_gold.txt",
+    help = """gold file, used for the evaluation during training, \
+      only generated for the 'people' corpus""")
 
   parser.add_argument(
     "--test_file",

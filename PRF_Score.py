@@ -23,27 +23,19 @@ testfile = sys.argv[1]
 goldfile = sys.argv[2]
 
 test_raw = []
-with codecs.open(testfile, 'r', "utf-8") as inpt1:
-  for ind, line in enumerate(inpt1):
-    sent = []
-
-    for word in line.split():
-      sent.append(word)
-
+with codecs.open(test_file, 'r', "utf-8") as inpt1:
+  for line in inpt1:
+    sent =  line.strip().split()
     if sent:
       test_raw.append(sent)
 
 gold_raw = []
-with codecs.open(goldfile, 'r', "utf-8") as inpt2:
-  for ind, line in enumerate(inpt2):
-    sent = []
-
-    for word in line.split():
-      sent.append(word)
-      N += 1
-
+with codecs.open(gold_file, 'r', "utf-8") as inpt2:
+  for line in inpt2:
+    sent = line.strip().split()
     if sent:
       gold_raw.append(sent)
+      N += len(sent)
 
 for i, gold_sent in enumerate(gold_raw):
   test_sent = test_raw[i]
@@ -77,7 +69,7 @@ for i, gold_sent in enumerate(gold_raw):
           # pdb.set_trace()
           print ("Line: %d" % (i + 1))
           print ("\nIt is the user's responsibility that a sentence in <test file> must", end = ' ')
-          print ("have a SAME LENGTH with its corresponding sentence in <gold file>.\n")
+          print ("have the SAME LENGTH with its corresponding sentence in <gold file>.\n")
           raise e
         
     ig += 1

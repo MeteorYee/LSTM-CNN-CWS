@@ -6,7 +6,7 @@
 #
 # Description: Help functions for the implementation of the models
 #
-# Last Modified at: 03/29/2018, by: Synrey Yee
+# Last Modified at: 05/20/2018, by: Synrey Yee
 
 '''
 ==========================================================================
@@ -35,12 +35,15 @@ from tensorflow.python.ops import lookup_ops
 from . import data_iterator
 
 import tensorflow as tf
+import numpy as np
 import time
+import codecs
 
 __all__ = [
     "create_train_model", "create_eval_model",
     "create_infer_model", "create_cnn_layer"
-    "create_or_load_model", "load_model"
+    "create_or_load_model", "load_model",
+    "create_pretrained_emb_from_txt"
 ]
 
 
@@ -189,6 +192,79 @@ def create_infer_model(hparams, model_creator):
       txt_placeholder = txt_placeholder,
       batch_size_placeholder = batch_size_placeholder,
       iterator = iterator)
+
+
+def _load_vocab(vocab_file):
+  vocab = []
+  with codecs.getreader("utf-8")(tf.gfile.GFile(vocab_file, "rb")) as f:
+    vocab_size = 0
+    for word in f:
+      vocab_size += 1
+      vocab.append(word.strip())
+  return vocab, vocab_size
+
+
+def _load_embed_txt(embed_file):
+  """Load embed_file into a python dictionary.
+
+  Note: the embed_file should be a Glove formated txt file. Assuming
+  embed_size=5, for example:
+
+  the -0.071549 0.093459 0.023738 -0.090339 0.056123
+  to 0.57346 0.5417 -0.23477 -0.3624 0.4037
+  and 0.20327 0.47348 0.050877 0.002103 0.060547
+
+  Note: The first line stores the information of the # of embeddings and
+  the size of an embedding.
+
+  Args:
+    embed_file: file path to the embedding file.
+  Returns:
+    a dictionary that maps word to vector, and the size of embedding dimensions.
+  """
+  emb_dict = dict()
+  with codecs.getreader("utf-8")(tf.gfile.GFile(embed_file, 'rb')) as f:
+    emb_num, emb_size = f.readline().strip().split()
+    emb_num = int(emb_num)
+    emb_size = int(emb_size)
+    for line in f:
+      tokens = line.strip().split(" ")
+      word = tokens[0]
+      vec = list(map(float, tokens[1:]))
+      emb_dict[word] = vec
+      assert emb_size == len(vec), "All embedding size should be same."
+  return emb_dict, emb_size
+
+
+def create_pretrained_emb_from_txt(vocab_file, embed_file, dtype = tf.float32):
+  """Load pretrain embeding from embed_file, and return an embedding matrix.
+
+  Args:
+    embed_file: Path to a Glove formated embedding txt file.
+    Note: we only need the embeddings whose corresponding words are in the
+    vocab_file.
+  """
+  vocab, _ = _load_vocab(vocab_file)
+
+  print('# Using pretrained embedding: %s.' % embed_file)
+  emb_dict, emb_size = _load_embed_txt(embed_file)
+
+  emb_mat = np.array(
+      [emb_dict[token] for token in vocab], dtype = dtype.as_numpy_dtype())
+
+  # The commented codes below are used for creating untrainable embeddings, which means
+  # the value of each embedding is settled.
+  # num_trainable_tokens = 1 # the unk token is trainable
+  # emb_mat = tf.constant(emb_mat)
+  # emb_mat_const = tf.slice(emb_mat, [num_trainable_tokens, 0], [-1, -1])
+  # with tf.variable_scope("pretrain_embeddings", dtype = dtype) as scope:
+  #   emb_mat_var = tf.get_variable(
+  #       "emb_mat_var", [num_trainable_tokens, emb_size])
+  # return tf.concat([emb_mat_var, emb_mat_const], 0)
+
+  # Whereas we use the pretrained embedding values as initial values,
+  # so the embeddings can be trainable and their values can be changed.
+  return tf.Variable(emb_mat, name = "char_embedding")
 
 
 def _char_convolution(inputs, cfilter):

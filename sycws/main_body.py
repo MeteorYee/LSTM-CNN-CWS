@@ -6,7 +6,7 @@
 #
 # Description: Training, evaluation and inference
 #
-# Last Modified at: 04/08/2018, by: Synrey Yee
+# Last Modified at: 05/21/2018, by: Synrey Yee
 
 '''
 ==========================================================================
@@ -31,6 +31,7 @@ from __future__ import print_function
 from __future__ import division
 
 from . import model_helper
+from . import prf_script
 
 import tensorflow as tf
 import numpy as np
@@ -56,6 +57,7 @@ def train(hparams, model_creator):
 
   train_model = model_helper.create_train_model(hparams, model_creator)
   eval_model = model_helper.create_eval_model(hparams, model_creator)
+  infer_model = model_helper.create_infer_model(hparams, model_creator)
 
   eval_txt_file = "%s.%s" % (hparams.eval_prefix, "txt")
   eval_lb_file = "%s.%s" % (hparams.eval_prefix, "lb")
@@ -69,14 +71,21 @@ def train(hparams, model_creator):
   # TensorFlow model
   train_sess = tf.Session(graph = train_model.graph)
   eval_sess = tf.Session(graph = eval_model.graph)
+  infer_sess = tf.Session(graph = infer_model.graph)
+
+  # Read the infer data
+  with codecs.getreader("utf-8")(
+      tf.gfile.GFile(eval_txt_file, mode="rb")) as f:
+    infer_data = f.read().splitlines()
 
   with train_model.graph.as_default():
     loaded_train_model, global_step = model_helper.create_or_load_model(
         train_model.model, model_dir, train_sess, "train", init = True)
 
   print("First evaluation:")
-  evaluation(eval_model, model_dir, eval_sess,
-      eval_iterator_feed_dict)
+  _run_full_eval(hparams, loaded_train_model, train_sess, eval_model,
+      model_dir, eval_sess, eval_iterator_feed_dict, infer_model,
+      infer_sess, infer_data, global_step, init = True)
 
   print("# Initialize train iterator...")
   train_sess.run(train_model.iterator.initializer)
@@ -99,8 +108,9 @@ def train(hparams, model_creator):
           train_sess,
           os.path.join(out_dir, "segmentation.ckpt"),
           global_step = global_step)
-      evaluation(eval_model, model_dir, eval_sess,
-          eval_iterator_feed_dict, init = False)
+      _run_full_eval(hparams, loaded_train_model, train_sess, eval_model,
+          model_dir, eval_sess, eval_iterator_feed_dict, infer_model,
+          infer_sess, infer_data, global_step, init = False)
 
       train_sess.run(train_model.iterator.initializer)
       continue
@@ -121,8 +131,9 @@ def train(hparams, model_creator):
           global_step = global_step)
 
       print("External Evaluation:")
-      evaluation(eval_model, model_dir, eval_sess,
-          eval_iterator_feed_dict, init = False)
+      _run_full_eval(hparams, loaded_train_model, train_sess, eval_model,
+          model_dir, eval_sess, eval_iterator_feed_dict, infer_model,
+          infer_sess, infer_data, global_step, init = False)
 
 
 def evaluation(eval_model, model_dir, eval_sess,
@@ -139,8 +150,8 @@ def evaluation(eval_model, model_dir, eval_sess,
   total_line = 0
   while True:
     try:
-      (batch_char_cnt, batch_right_cnt,
-          batch_size, batch_lens) = loaded_eval_model.eval(eval_sess)
+      (batch_char_cnt, batch_right_cnt, batch_size,
+          batch_lens) = loaded_eval_model.eval(eval_sess)
 
       for right_cnt, length in zip(batch_right_cnt, batch_lens):
         total_right_cnt += np.sum(right_cnt[ : length])
@@ -152,11 +163,55 @@ def evaluation(eval_model, model_dir, eval_sess,
       break
 
   precision = total_right_cnt / total_char_cnt
-  print("Eval precision: %.3f, of total %d lines" % (precision, total_line))
+  print("Tagging precision: %.3f, of total %d lines" % (precision, total_line))
+
+
+def _eval_inference(infer_model, infer_sess, infer_data, model_dir, hparams, init):
+  with infer_model.graph.as_default():
+    loaded_infer_model, global_step = model_helper.create_or_load_model(
+        infer_model.model, model_dir, infer_sess, "infer", init)
+
+  infer_sess.run(
+        infer_model.iterator.initializer,
+        feed_dict = {
+            infer_model.txt_placeholder: infer_data,
+            infer_model.batch_size_placeholder: hparams.infer_batch_size
+        })
+
+  test_list = []
+  while True:
+    try:
+      text_raw, decoded_tags, seq_lens = loaded_infer_model.infer(infer_sess)
+    except tf.errors.OutOfRangeError:
+      # finish the evaluation
+      break
+    _decode_by_function(lambda x : test_list.append(x), text_raw, decoded_tags, seq_lens)
+
+  gold_file = hparams.eval_gold_file
+  score = prf_script.get_prf_score(test_list, gold_file)
+  return score
+
+
+def _run_full_eval(hparams, loaded_train_model, train_sess, eval_model,
+    model_dir, eval_sess, eval_iterator_feed_dict, infer_model,
+    infer_sess, infer_data, global_step, init):
+
+  evaluation(eval_model, model_dir, eval_sess,
+    eval_iterator_feed_dict)
+  score = _eval_inference(infer_model, infer_sess, infer_data,
+      model_dir, hparams, init)
+  # save the best model
+  if score > getattr(hparams, "best_Fvalue"):
+    setattr(hparams, "best_Fvalue", score)
+    loaded_train_model.saver.save(
+        train_sess,
+        os.path.join(
+            getattr(hparams, "best_Fvalue_dir"), "translate.ckpt"),
+        global_step = global_step)
 
 
 def load_data(inference_input_file):
-  """Load inference data."""
+  # Load inference data.
   inference_data = []
   with codecs.getreader("utf-8")(
       tf.gfile.GFile(inference_input_file, mode="rb")) as f:
@@ -166,6 +221,26 @@ def load_data(inference_input_file):
         inference_data.append(u' '.join(list(line)))
 
   return inference_data
+
+
+def _decode_by_function(writer_function, text_raw, decoded_tags, seq_lens):
+  assert len(text_raw) == len(decoded_tags)
+  assert len(seq_lens) == len(decoded_tags)
+
+  for text_line, tags_line, length in zip(text_raw, decoded_tags, seq_lens):
+    text_line = text_line[ : length]
+    tags_line = tags_line[ : length]
+    newline = u""
+
+    for char, tag in zip(text_line, tags_line):
+      char = char.decode("utf-8")
+      if tag == TAG_S or tag == TAG_B:
+        newline += u' ' + char
+      else:
+        newline += char
+
+    newline = newline.strip()
+    writer_function(newline + u'\n')
 
 
 def inference(ckpt, input_file, trans_file, hparams, model_creator):
@@ -193,21 +268,4 @@ def inference(ckpt, input_file, trans_file, hparams, model_creator):
       except tf.errors.OutOfRangeError:
         # finish the evaluation
         break
-
-      assert len(text_raw) == len(decoded_tags)
-      assert len(seq_lens) == len(decoded_tags)
-
-      for text_line, tags_line, length in zip(text_raw, decoded_tags, seq_lens):
-        text_line = text_line[ : length]
-        tags_line = tags_line[ : length]
-        newline = u""
-
-        for char, tag in zip(text_line, tags_line):
-          char = char.decode("utf-8")
-          if tag == TAG_S or tag == TAG_B:
-            newline += u' ' + char
-          else:
-            newline += char
-
-        newline = newline.strip()
-        trans_f.write(newline + u'\n')
+      _decode_by_function(lambda x : trans_f.write(x), text_raw, decoded_tags, seq_lens)

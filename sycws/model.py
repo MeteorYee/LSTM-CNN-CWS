@@ -6,7 +6,7 @@
 #
 # Description: Segmentation models
 #
-# Last Modified at: 04/08/2018, by: Synrey Yee
+# Last Modified at: 05/21/2018, by: Synrey Yee
 
 '''
 ==========================================================================
@@ -90,9 +90,9 @@ class BasicModel(object):
       self.update = opt.apply_gradients(
           zip(clipped_grads, params), global_step = self.global_step)
 
-    # Saver, hparams.num_keep_ckpts
+    # Saver, saves 5 checkpoints by default
     self.saver = tf.train.Saver(
-        tf.global_variables(), max_to_keep = 1)
+        tf.global_variables(), max_to_keep = 5)
 
     # Print trainable variables
     print("# Trainable variables")
@@ -102,9 +102,13 @@ class BasicModel(object):
 
   def init_embeddings(self, hparams, dtype = tf.float32):
     with tf.variable_scope("embeddings", dtype = dtype) as scope:
-      self.char_embedding = tf.get_variable(
-          "char_embedding", [self.vocab_size, hparams.num_units], dtype,
-          initializer = self.initializer(stddev = hparams.init_std))
+      if hparams.embed_file:
+        self.char_embedding = model_helper.create_pretrained_emb_from_txt(
+            hparams.vocab_file, hparams.embed_file)
+      else:
+        self.char_embedding = tf.get_variable(
+            "char_embedding", [self.vocab_size, hparams.num_units], dtype,
+            initializer = self.initializer(stddev = hparams.init_std))
 
 
   def build_graph(self, hparams):

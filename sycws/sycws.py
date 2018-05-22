@@ -6,7 +6,7 @@
 #
 # Description: A neural network tool for Chinese word segmentation
 #
-# Last Modified at: 04/08/2018, by: Synrey Yee
+# Last Modified at: 05/21/2018, by: Synrey Yee
 
 '''
 ==========================================================================
@@ -36,6 +36,7 @@ import tensorflow as tf
 
 import argparse
 import sys
+import os
 import codecs
 
 
@@ -53,8 +54,14 @@ def add_arguments(parser):
                       help = "Train prefix, expect files with .txt/.lb suffixes.")
   parser.add_argument("--eval_prefix", type = str, default = None,
                       help = "Eval prefix, expect files with .txt/.lb suffixes.")
+  parser.add_argument("--eval_gold_file", type = str, default = None,
+                      help = "Eval gold file.")
+
   parser.add_argument("--vocab_file", type = str, default = None,
                       help = "Vocabulary file.")
+  parser.add_argument("--embed_file", type = str, default = None, help="""\
+      Pretrained embedding files, The expecting files should be Glove formated txt files.\
+      """)
   parser.add_argument("--index_file", type = str, default = "./sycws/indices.txt",
                       help = "Indices file.")
   parser.add_argument("--out_dir", type = str, default = None,
@@ -73,12 +80,12 @@ def add_arguments(parser):
   parser.add_argument("--num_train_steps",
       type = int, default = 45000, help = "Num steps to train.")
 
-  parser.add_argument("--init_std", type = float, default = 0.01,
+  parser.add_argument("--init_std", type = float, default = 0.05,
                       help = "for truncated normal init_op")
-  parser.add_argument("--filter_init_std", type = float, default = 0.01,
+  parser.add_argument("--filter_init_std", type = float, default = 0.035,
                       help = "truncated normal initialization for CNN's filter")
 
-  parser.add_argument("--dropout", type = float, default = 0.5,
+  parser.add_argument("--dropout", type = float, default = 0.3,
                       help = "Dropout rate (not keep_prob)")
   parser.add_argument("--max_gradient_norm", type = float, default = 5.0,
                       help = "Clip gradients to this norm.")
@@ -115,7 +122,10 @@ def create_hparams(flags):
     # data
     train_prefix = flags.train_prefix,
     eval_prefix = flags.eval_prefix,
+    eval_gold_file = flags.eval_gold_file,
     vocab_file = flags.vocab_file,
+    embed_file = flags.embed_file,
+
     index_file = flags.index_file,
     out_dir = flags.out_dir,
     max_len = flags.max_len,
@@ -197,15 +207,7 @@ def main(unused_argv):
   if not tf.gfile.Exists(out_dir):
     tf.gfile.MakeDirs(out_dir)
 
-  check_corpora(FLAGS.train_prefix, FLAGS.eval_prefix)
-
   hparams = create_hparams(FLAGS)
-  assert tf.gfile.Exists(hparams.vocab_file)
-
-  vocab_size = check_vocab(hparams.vocab_file)
-  hparams.add_hparam("vocab_size", vocab_size)
-  print_hparams(hparams)
-
   model = hparams.model.upper()
   if model == "CRF":
     model_creator = model_r.BasicModel
@@ -213,7 +215,11 @@ def main(unused_argv):
     model_creator = model_r.CnnCrfModel
   else:
     raise ValueError("Unknown model %s" % model)
-  
+
+  assert tf.gfile.Exists(hparams.vocab_file)
+  vocab_size = check_vocab(hparams.vocab_file)
+  hparams.add_hparam("vocab_size", vocab_size)
+
   if FLAGS.inference_input_file:
     # Inference
     trans_file = FLAGS.inference_output_file
@@ -225,6 +231,15 @@ def main(unused_argv):
                  trans_file, hparams, model_creator)
   else:
     # Train
+    check_corpora(FLAGS.train_prefix, FLAGS.eval_prefix)
+
+    # used for evaluation
+    hparams.add_hparam("best_Fvalue", 0)  # larger is better
+    best_metric_dir = os.path.join(hparams.out_dir, "best_Fvalue")
+    hparams.add_hparam("best_Fvalue_dir", best_metric_dir)
+    tf.gfile.MakeDirs(best_metric_dir)
+
+    print_hparams(hparams)
     main_body.train(hparams, model_creator)
 
 
