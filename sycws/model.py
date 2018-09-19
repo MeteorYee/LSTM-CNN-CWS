@@ -128,7 +128,9 @@ class BasicModel(object):
 
       # Loss
       if self.mode != tf.contrib.learn.ModeKeys.INFER:
-        loss = tf.reduce_mean(xentropy)
+        # get the regularization loss
+        reg_loss = tf.losses.get_regularization_loss()
+        loss = tf.reduce_mean(xentropy) + reg_loss
       else:
         loss = None
       return loss

@@ -52,9 +52,9 @@ Experiments on corpus [**People 2014**](http://www.all-terms.com/bbs/thread-7977
 
 |     Models    |  Bi-LSTM-SL-CRF  |  Bi-LSTM-CNN-CRF  |
 | :-----------: | :--------------: | :---------------: |
-|   Precision   |     96.25%       |      96.30%       |
-|     Recall    |     95.34%       |      95.70%       |
-|     F-value   |     95.79%       |    **96.00%**     |
+|   Precision   |     96.25%       |      96.30%       |
+|     Recall    |     95.34%       |      95.70%       |
+|     F-value   |     95.79%       |    **96.00%**     |
 
 ## Segmentation
 * Inference <br>

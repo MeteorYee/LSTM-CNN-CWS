@@ -206,7 +206,7 @@ def _run_full_eval(hparams, loaded_train_model, train_sess, eval_model,
     loaded_train_model.saver.save(
         train_sess,
         os.path.join(
-            getattr(hparams, "best_Fvalue_dir"), "translate.ckpt"),
+            getattr(hparams, "best_Fvalue_dir"), "segmentation.ckpt"),
         global_step = global_step)
 
 
