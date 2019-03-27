@@ -19,8 +19,8 @@ c = 0 # correct words number
 N = 0 # gold words number
 TN = 0 # test words number
 
-testfile = sys.argv[1]
-goldfile = sys.argv[2]
+test_file = sys.argv[1]
+gold_file = sys.argv[2]
 
 test_raw = []
 with codecs.open(test_file, 'r', "utf-8") as inpt1:
